@@ -11,10 +11,10 @@ from os.path import dirname
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', required=True, help="Folder of a phylomeDB output, including a phylogenetic tree in newick format used as the input.")
+    parser.add_argument('-i', '--input', default=False, required=True, help="Folder of a phylomizer output. It is expected to include a phylogenetic tree in newick format used as the input, and a rank file with the score for the different models. It will select the best available newick tree based on the score.")
     parser.add_argument('-m', '--main', help="This is the name of the central sequence used for building the tree. By default, the script will assume that the name of the sequence is included in the name of the file containing the tree and will search it using a regular expression match.")
     parser.add_argument('-o', '--output', default="abaccus_output.txt", help="Name of the output file")
-    parser.add_argument('-t', '--taxonomy', default="/users/tg/mnaranjo/scripts_and_stuff/project_plinius/monster_compendium2.1.csv", help="Name of the file containing the taxonomic information of each species in the dataset")
+    parser.add_argument('-t', '--taxonomy', default="./taxonomy.csv", help="Name of the file containing the taxonomic information of each species in the dataset")
     parser.add_argument('-J', '--jumps', default=3, type=int, help="Minimum number of unshared taxa between one branch of the tree and its sister branch, to be considered suspicious of beeing en event")
     parser.add_argument('-L', '--loses', default=4, type=int, help="Number of loses needed to be considered a potential event.")
     parser.add_argument('-R', '--rounds', default=6, type=int, help="It sets the number 'r' of times the algorythm will explore parent nodes. If they iterate r times without finding anything suspicious, the program will stop. This parameter aims to prevent false positives by limiting the explored space to the closest relatives to the central sequence.")
@@ -25,6 +25,9 @@ if __name__ == '__main__':
         
 args = parser.parse_args()
 
+if args.input[-1] == "/":
+	args.input = args.input[:-1]
+
 if args.strikes < args.exceptions:
 	print "Error: Strikes must be equal or lower than Exceptions. Remember that every Exception is an strike. but not every strike is an exception!"
 	sys.exit()
@@ -33,41 +36,56 @@ if args.branch_support > 1.0:
 	print "Branch support is a fraction of 1, so you cannot give a value above that. Your value was: "+str(args.branch)
 	sys.exit()
   
-for element in os.listdir(args.input):
-	if element.find(".tree.phyml.rank.nj") > -1:
-		rank = args.input + "/" + element
-		break 
-		
-rankfile = open(rank)
 
-model = str(rankfile.readline()).split()[0]
 
-tree = rank[rank.rfind("/")+1:rank.find(".tree.phyml.rank")]
-attempt1 = args.input + "/" + tree + ".tree.phyml.ml." + model + ".nw"
-attempt2 = args.input + "/" + tree + ".tree.phyml.nj." + model + ".nw"
+if os.path.isdir(args.input) == True:
+	for element in os.listdir(args.input):
+		if element.find(".tree.phyml.rank.nj") > -1:
+			rank = args.input + "/" + element
+			break 			
+	rankfile = open(rank)
 
-chosen_model_tree = ''
+	model = str(rankfile.readline()).split()[0]
 
-if os.path.isfile(attempt1) == True:
-	chosen_model_tree = attempt1
-else:
-	if os.path.isfile(attempt2) == True:
-		chosen_model_tree = attempt2
+	tree = rank[rank.rfind("/")+1:rank.find(".tree.phyml.rank")]
+	attempt1 = args.input + "/" + tree + ".tree.phyml.ml." + model + ".nw"
+	attempt2 = args.input + "/" + tree + ".tree.phyml.nj." + model + ".nw"
+
+	chosen_model_tree = ''
+
+	if os.path.isfile(attempt1) == True:
+		chosen_model_tree = attempt1
 	else:
-		print "Wrong named or non-existent tree"
-		raise (NameError)
+		if os.path.isfile(attempt2) == True:
+			chosen_model_tree = attempt2
+		else:
+			print "Wrong named or non-existent tree"
+			sys.exit()
 		
-phylotree = Tree(chosen_model_tree)
+	phylotree = Tree(chosen_model_tree)
+else:
+	phylotree = Tree(args.input)
 
 for node in phylotree.get_descendants():
 	if node.support < args.branch_support:
 		node.delete()
 tag = str(args.input[args.input.rfind("."):])
 
+
 if args.main != None:
 	central_seq = args.main
 else:
-	central_seq = re.findall("[A-Z0-9]{4,10}_[A-Z0-9]{3,5}"+tag, args.input)[-1][:-6]
+	if os.path.isdir(args.input) == True:
+		central_seq = re.findall("[A-Z0-9]{4,10}_[A-Z0-9]{3,5}"+tag, args.input)[-1][:-6]
+	else:
+		for seq in phylotree.get_leaves():
+			name = str(seq)[3:str(seq).find("|")]
+			if args.input.find(name) > -1:
+				central_seq = re.findall("[A-Z0-9]{4,10}_[A-Z0-9]{3,5}", str(seq))[-1]
+				break
+		else:
+			raise IOError ("I don't know which one is the main sequence used for the tree. Maybe you can provide the name manually with the -m or --main flag")
+
 
 central_sp = central_seq[central_seq.find("_")+1:]
 taxofile = args.taxonomy
@@ -307,7 +325,7 @@ if cutoff[0] >= args.loses:
 		outputfile.write("\n\n\n")
 		outputfile.close()
 	if args.verbose == True:
-		print central_seq
+		print "###"+central_seq+"###"
 		print("#Minimal number of loses: " + str(cutoff[0]))
 		for element in cutoff[1]:
 			print(element)
