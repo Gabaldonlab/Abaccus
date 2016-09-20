@@ -18,9 +18,13 @@ To see the rest of the options, just type:
 > python ./abaccus.py -h
 
 
-#Examples
+**Examples**
 
 The current directory contains three examples. Each directory contains the newick file, as well as the fasta file used for building the tree.
+  
   1) Example1 contains a well described horizontal gene transfer event in *Schizosaccharomyces pombe*, containing two highly related alanine racemases.
+  
   2) Example2 contains a putative event described in Naranjo-Ortiz, et al (2009). Is a complex event involving a primary transfer of an aspartate-glutamate-hydantoin racemase from bacteria to fungi, and an uncertain number of secondary transferences between different fungal clades.
-  3) Example3 contains a possible transference of an aspartate-glutamate-hydantoin racemase in the foraminiferan *Reticulomyxa filosa*. While the topology of the tree suggest a very possible horizontal gene transfer, abaccus will reject the event based on the lack of representation of related organisms. Negative control.
+  
+  3) Example3 contains a possible transference of an aspartate-glutamate-hydantoin racemase in the foraminiferan *Reticulomyxa 
+  filosa*. While the topology of the tree suggest a very possible horizontal gene transfer, abaccus will reject the event based on the lack of representation of related organisms. Negative control.
