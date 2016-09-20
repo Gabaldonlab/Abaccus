@@ -1,5 +1,5 @@
 # Abaccus
-Abaccus pipeline for detection of HGT events. Version 1.0
+Abaccus is a python-based script for the detection of Horizontal Gene Transfer (HGT) events. Version 1.0
 
 Initial version of the script. The publication of this script is meant to serve other researchers to reproduce the results of Naranjo-Ortiz et al (2016). We do not responsabilize of the problems that may arise if the script is used for other purposes.
 
