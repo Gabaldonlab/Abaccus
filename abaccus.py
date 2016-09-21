@@ -15,8 +15,8 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--main', help="This is the name of the central sequence used for building the tree. By default, the script will assume that the name of the sequence is included in the name of the file containing the tree and will search it using a regular expression match.")
     parser.add_argument('-o', '--output', default="abaccus_output.txt", help="Name of the output file")
     parser.add_argument('-t', '--taxonomy', default="./taxonomy.csv", help="Name of the file containing the taxonomic information of each species in the dataset")
-    parser.add_argument('-J', '--jumps', default=3, type=int, help="Minimum number of unshared taxa between one branch of the tree and its sister branch, to be considered suspicious of beeing en event")
-    parser.add_argument('-L', '--loses', default=4, type=int, help="Number of loses needed to be considered a potential event.")
+    parser.add_argument('-J', '--jumps', default=2, type=int, help="Minimum number of unshared taxa between one branch of the tree and its sister branch, to be considered suspicious of beeing en event")
+    parser.add_argument('-L', '--loses', default=3, type=int, help="Number of loses needed to be considered a potential event.")
     parser.add_argument('-R', '--rounds', default=6, type=int, help="It sets the number 'r' of times the algorythm will explore parent nodes. If they iterate r times without finding anything suspicious, the program will stop. This parameter aims to prevent false positives by limiting the explored space to the closest relatives to the central sequence.")
     parser.add_argument('-X', '--exceptions', default=2, type=int, help="Number of acceptable consecutive breaks of monophily. The program will sample the tree when it arrives to this number. This number must be necessarily equal or lower than 'exceptions'.")
     parser.add_argument('-S', '--strikes', default=3, type=int, help="Number of acceptable non-consecutive breaks of monophily. The program will sample the tree when it arrives to this number. This number must be necessarily equal or higher than 'exceptions'.")
@@ -215,6 +215,7 @@ def orthogroup (phylotree):
 	curr_level = taxo_dict[central_sp][0]
 	start_point = main_leaf
 	switch = False
+	leap = 0
 	rounds = 0
 	while rounds <= args.rounds and switch == False:
 		sis_mnemo, next_mnemo, combined_mnemo, para_mnemo, start_mnemo = [], [], [], [], []
@@ -260,12 +261,14 @@ def orthogroup (phylotree):
 			if bacteria_purity == True:
 				output = start_point.get_common_ancestor(next_branch)
 				switch = True
+				leap = combined_dinasty[1] - start_dinasty[1]
 				break
 			
 		elif combined_dinasty[0] != "biosphere" and next_dinasty[0] != "biosphere" and (combined_dinasty[1] - start_dinasty[1]) >= args.jumps: #This means that no prokaryotic sequence have been found so far neither in sis_branch nor in next_branch, but the taxonomic jump parameter has been met. It indicates a possible case of intereukaryotic HGT
 			if paperbag_dict[start_dinasty[0]].issubset(paperbag_dict[para_dinasty[0]]) == False:
 				output = start_point.get_common_ancestor(next_branch)
 				switch = True
+				leap = combined_dinasty[1] - start_dinasty[1]
 				break
 			else:
 				start_point = start_point.get_common_ancestor(sis_branch)
@@ -273,7 +276,7 @@ def orthogroup (phylotree):
 		else:
 			start_point = start_point.get_common_ancestor(sis_branch)
 			rounds = rounds + 1
-	return output, start_point, start_dinasty[0], sis_dinasty[0]
+	return output, start_point, start_dinasty[0], sis_dinasty[0], leap
 
 ########################################################################
 '''Abaccus will check the tree extracted from orthogroup and will count
@@ -312,12 +315,13 @@ taxonomist(taxofile)
 paperbag(taxofile)
 orthotree = orthogroup(phylotree)
 
-cutoff = abaccus(orthotree[0], orthotree[1], orthotree[2], orthotree[3])
+cutoff, jump = abaccus(orthotree[0], orthotree[1], orthotree[2], orthotree[3]), str(orthotree[4])
 
 if cutoff[0] >= args.loses:
 	if args.verbose == False:
 		outputfile.write("\n###" + central_seq + "###\n")
 		outputfile.write("#Minimal number of loses: " + str(cutoff[0]) + "\n")
+		outputfile.write("J == "+jump+" ; L == "+ str(cutoff[0])+". Cutoff values are J =< "+str(args.jumps)+" and L =< "+str(args.loses))
 		for element in cutoff[1]:
 			outputfile.write(element)
 			outputfile.write("\n")
@@ -327,6 +331,7 @@ if cutoff[0] >= args.loses:
 	if args.verbose == True:
 		print "###"+central_seq+"###"
 		print("#Minimal number of loses: " + str(cutoff[0]))
+		print("J == "+jump+" and L == "+ str(cutoff[0])+". Cutoff values are J => "+str(args.jumps)+" and L => "+str(args.loses))
 		for element in cutoff[1]:
 			print(element)
 		print(orthotree[0])
