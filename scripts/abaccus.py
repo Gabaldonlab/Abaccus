@@ -12,53 +12,49 @@ import argparse
 # from os.path import dirname (never used)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', default=False, required=True, help="Folder of a phylomizer output. It is expected to include a phylogenetic tree in newick format used as the input, and a rank file with the score for the different models. It will select the best available newick tree based on the score.")
-    parser.add_argument('-m', '--main', help="This is the name of the central sequence used for building the tree. By default, the script will assume that the name of the sequence is included in the name of the file containing the tree and will search it using a regular expression match.")
-    parser.add_argument('-o', '--output', default="abaccus_output.txt", help="Name of the output file")
-    parser.add_argument('-t', '--taxonomy', default="./taxonomy.csv", help="Name of the file containing the taxonomic information of each species in the dataset")
-    parser.add_argument('-J', '--jumps', default=2, type=int, help="Minimum number of unshared taxa between one branch of the tree and its sister branch, to be considered suspicious of beeing en event")
-    parser.add_argument('-L', '--losses', default=3, type=int, help="Number of losses needed to be considered a potential event.")
-    parser.add_argument('-R', '--rounds', default=6, type=int, help="It sets the number 'r' of times the algorithm will explore parent nodes. If they iterate r times without finding anything suspicious, the program will stop. This parameter aims to prevent false positives by limiting the explored space to the closest relatives to the central sequence.")
-    parser.add_argument('-X', '--exceptions', default=2, type=int, help="Number of acceptable consecutive breaks of monophily. The program will sample the tree when it arrives to this number. This number must be necessarily equal or lower than 'exceptions'.")
-    parser.add_argument('-S', '--strikes', default=3, type=int, help="Number of acceptable non-consecutive breaks of monophily. The program will sample the tree when it arrives to this number. This number must be necessarily equal or higher than 'exceptions'.")
-    parser.add_argument('-v', '--verbose', action='store_true', help="Prints the result onscreen instead of redirecting it to a file")
-    parser.add_argument('-b', '--branch_support', default=0.9, type=float)
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-i', '--input', default=False, required=True, help="Folder of a phylomizer output. It is expected to include a phylogenetic tree in newick format used as the input, and a rank file with the score for the different models. It will select the best available newick tree based on the score.")
+	parser.add_argument('-m', '--main', help="This is the name of the central sequence used for building the tree. By default, the script will assume that the name of the sequence is included in the name of the file containing the tree and will search it using a regular expression match.")
+	parser.add_argument('-o', '--output', default="abaccus_output.txt", help="Name of the output file")
+	parser.add_argument('-t', '--taxonomy', default="./taxonomy.csv", help="Name of the file containing the taxonomic information of each species in the dataset")
+	parser.add_argument('-J', '--jumps', default=2, type=int, help="Minimum number of unshared taxa between one branch of the tree and its sister branch, to be considered suspicious of beeing en event")
+	parser.add_argument('-L', '--losses', default=3, type=int, help="Number of losses needed to be considered a potential event.")
+	parser.add_argument('-R', '--rounds', default=6, type=int, help="It sets the number 'r' of times the algorithm will explore parent nodes. If they iterate r times without finding anything suspicious, the program will stop. This parameter aims to prevent false positives by limiting the explored space to the closest relatives to the central sequence.")
+	parser.add_argument('-v', '--verbose', action='store_true', help="Prints the result onscreen instead of redirecting it to a file")
+	parser.add_argument('-b', '--branch_support', default=0.9, type=float)
+	# parser.add_argument('-X', '--exceptions', default=2, type=int, help="Number of acceptable consecutive breaks of monophily. The program will sample the tree when it arrives to this number. This number must be necessarily equal or lower than 'exceptions'.")
+	# parser.add_argument('-S', '--strikes', default=3, type=int, help="Number of acceptable non-consecutive breaks of monophily. The program will sample the tree when it arrives to this number. This number must be necessarily equal or higher than 'exceptions'.")
 
 args = parser.parse_args()
 
 if args.input[-1] == "/":
 	args.input = args.input[:-1]
 
-if args.strikes < args.exceptions:
-	print("Error: Strikes must be equal or lower than Exceptions. Remember that	every Exception is an strike. but not every strike is an exception!")
-	sys.exit()
+# if args.strikes < args.exceptions:
+# 	print("Error: Strikes must be equal or lower than Exceptions. Remember that	every Exception is an strike. but not every strike is an exception!")
+# 	sys.exit()
 
 if args.branch_support > 1.0:
 	print("Branch support is a fraction of 1, so you cannot give a value above that. Your value was: ") + str(args.branch)
 	sys.exit()
 
-
-
-if os.path.isdir(args.input) == True:
+if os.path.isdir(args.input):
 	for element in os.listdir(args.input):
-		if element.find(".tree.phyml.rank.nj") > -1:
+		if element.find(".tree.phyml.rank.") > -1:
 			rank = args.input + "/" + element
 			break
+
 	rankfile = open(rank)
-
 	model = str(rankfile.readline()).split()[0]
-
 	tree = rank[rank.rfind("/")+1:rank.find(".tree.phyml.rank")]
 	attempt1 = args.input + "/" + tree + ".tree.phyml.ml." + model + ".nw"
 	attempt2 = args.input + "/" + tree + ".tree.phyml.nj." + model + ".nw"
-
 	chosen_model_tree = ''
 
-	if os.path.isfile(attempt1) == True:
+	if os.path.isfile(attempt1):
 		chosen_model_tree = attempt1
 	else:
-		if os.path.isfile(attempt2) == True:
+		if os.path.isfile(attempt2):
 			chosen_model_tree = attempt2
 		else:
 			print("Wrong named or non-existent tree")
@@ -72,12 +68,11 @@ for node in phylotree.get_descendants():
 	if node.support < args.branch_support:
 		node.delete()
 
-tag = str(args.input[args.input.rfind("."):])
-
-if args.main != None:
+if args.main is not None:
 	central_seq = args.main
 else:
-	if os.path.isdir(args.input) == True:
+	if os.path.isdir(args.input):
+		tag = str(args.input[args.input.rfind("."):])
 		central_seq = re.findall("[A-Z0-9]{4,10}_[A-Z0-9]{3,5}" + tag, args.input)[-1][:-6]
 	else:
 		for seq in phylotree.get_leaves():
@@ -87,13 +82,12 @@ else:
 				break
 		else:
 			raise IOError("I don't know which one is the main sequence used for the tree. Maybe you can provide the name manually with the -m or --main flag")
-
+	print('the central sequence found is: ' + str(central_seq))
 
 central_sp = central_seq[central_seq.find("_")+1:]
 taxofile = args.taxonomy
-if args.verbose == False:
+if not args.verbose:
 	outputfile = open(args.output, "a")
-
 
 ########################################################################
 '''Taxonomist will create a dictionary relating each mnemonic with the
@@ -104,8 +98,14 @@ taxo_dict = {}
 
 def taxonomist(taxofile, sep=";"):
 	for line in open(taxofile):
+		if line[0] == "#":
+			continue
+		# strip newline
+		line = line.strip()
+		# skip first header line
 		taxa = line.split(sep)
-		taxo_dict[taxa[1]] = taxa[2:10]
+		# requires second column to be the mnemo
+		taxo_dict[taxa[1]] = taxa[2:]
 	return taxo_dict
 
 
@@ -117,42 +117,33 @@ paperbag_dict = {}
 
 
 def paperbag(taxofile, sep=";"):
+	# init empty set
 	termset = set()
-	paperbag_dict["biosphere"] = set(["BACTERIA", "ARCHAEA"])
-	#  paperbag_dict["biosphere"].add("BACTERIA")
-	#  paperbag_dict["biosphere"].add("ARCHAEA")
-	paperbag_dict["eukaryota"] = set()
+	# add most basal key (whichever is not EUKA!)
+	paperbag_dict["biosphere"] = set()
 	for line in open(taxofile):
 		if line[0] == "#":
 			continue
 		else:
+			line = line.strip()
 			cast = line.split(sep)
-			for term in cast[2:10]:
+			# assume third col is the first useful
+			for term in cast[2:]:
 				termset.add(term)
 	for term in termset:
+		# for each term in taxofile add a key and init empty set
 		paperbag_dict[term] = set()
 	for line in open(taxofile):
 		if line[0] == "#":
 			continue
 		else:
+			line = line.strip()
 			elements = line.split(sep)
-			for element in elements[2:10]:
+			# for each element add the corresponding mnemos
+			for element in elements[2:]:
 				paperbag_dict[element].add(elements[1])
 				paperbag_dict["biosphere"].add(elements[1])
-				paperbag_dict["eukaryota"].add(elements[1])
 	return paperbag_dict
-
-
-########################################################################
-'''euka_exclusive will look at a phylogenetic tree and check if all
-branches are eukaryotic, and some related information'''
-
-
-def euka_exclusive(problemtree):
-	cast = set()
-	for leaf in problemtree.get_leaves():
-		cast.add(str(leaf)[str(leaf).rfind("_")+1:])
-	return cast.issubset(paperbag_dict["eukaryota"]), cast, cast.intersection(paperbag_dict["eukaryota"])
 
 
 ########################################################################
@@ -170,24 +161,24 @@ def dinasty(spp_list):
 	else:
 		print("Warning: Different taxonomy sizes")
 	for i in range(level):
-		if switch == True:
+		if switch:
 			continue
 		else:
 			for spp in spp_tuple:
 				if spp in taxo_dict.keys():
 					checkset.add(taxo_dict[spp][int(i)])
 				if spp not in taxo_dict.keys():
-					commonancestor = ["biosphere", 9]
+					commonancestor = ["biosphere", level+1]
 					switch = True
 					break
-		if len(checkset) == 1 and switch == False:
+		if len(checkset) == 1 and not switch:
 			commonancestor = [taxo_dict[spp_list[0]][int(i)], int(i)]
 			break
 		else:
 			checkset = set()
 			continue
 	if commonancestor == '':
-		commonancestor = ["eukaryota", 8]
+		commonancestor = ['Eukaryota', level]
 	return commonancestor
 
 
@@ -219,22 +210,15 @@ def orthogroup(phylotree):
 		if str(leaf).find(central_seq) > -1:
 			main_leaf = leaf
 			break
-	distance_to_main = 0.0
-	tree_root = ''
-	for leaf in phylotree.iter_leaves():  # With this, the script will look at the furthest node to the central sequence and will select it as the root of the tree
-		if leaf.name != main_leaf:
-			if distance_to_main < main_leaf.get_distance(leaf):
-				distance_to_main = main_leaf.get_distance(leaf)
-				tree_root = leaf
+	# main_leaf = phylotree&central_seq
+	tree_root = main_leaf.get_farthest_node()[0]
 	phylotree.set_outgroup(tree_root)
 	output = main_leaf
-	#  prev_level = taxo_dict[central_sp][0]  # Never used
-	#  curr_level = taxo_dict[central_sp][0]  # Never used
 	start_point = main_leaf
 	switch = False
 	leap = 0
 	rounds = 0
-	while rounds <= args.rounds and switch == False:
+	while rounds <= args.rounds and not switch:
 		sis_branch = start_point.get_sisters()
 		next_branch = start_point.get_common_ancestor(sis_branch).get_sisters()
 		start_mnemo = get_mnemonics(start_point)
@@ -250,8 +234,9 @@ def orthogroup(phylotree):
 		# This loop is needed so para_mnemo is independent from next_mnemo
 		para_mnemo = [spp for element in next_branch for spp in get_mnemonics(element)] + [el for el in sis_mnemo]
 
-		start_dinasty, combined_dinasty, para_dinasty, next_dinasty, sis_dinasty = dinasty(start_mnemo), dinasty(combined_mnemo), dinasty(para_mnemo), dinasty(next_mnemo), dinasty(sis_mnemo)
+		start_dinasty, combined_dinasty, para_dinasty, next_dinasty = dinasty(start_mnemo), dinasty(combined_mnemo), dinasty(para_mnemo), dinasty(next_mnemo)
 
+		# if at least one in both start+sis and next is proka, check if all are proka. If not, go to next branch. If yes, get common ancestor as result
 		if combined_dinasty[0] == "biosphere" and next_dinasty[0] == "biosphere" and (combined_dinasty[1] - start_dinasty[1]) >= args.jumps:  # This means that at least one sequence in both sister_branch and next_branch is prokaryotic
 			bacteria_purity = True
 			for element in sis_mnemo:
@@ -260,18 +245,19 @@ def orthogroup(phylotree):
 			for element in next_mnemo:
 				if element in taxo_dict.keys():
 					bacteria_purity = False
-			if bacteria_purity == False:
+			if not bacteria_purity:
 				start_point = start_point.get_common_ancestor(sis_branch)
 				rounds = rounds + 1
 				continue
-			if bacteria_purity == True:
+			if bacteria_purity:
 				output = start_point.get_common_ancestor(next_branch)
 				switch = True
 				leap = combined_dinasty[1] - start_dinasty[1]
 				break
 
 		elif combined_dinasty[0] != "biosphere" and next_dinasty[0] != "biosphere" and (combined_dinasty[1] - start_dinasty[1]) >= args.jumps:  # This means that no prokaryotic sequence have been found so far neither in sis_branch nor in next_branch, but the taxonomic jump parameter has been met. It indicates a possible case of intereukaryotic HGT
-			if paperbag_dict[start_dinasty[0]].issubset(paperbag_dict[para_dinasty[0]]) == False:
+			# if not all the species contained in the start dinasty are into the para (at least one loss) then exit and get the common ancestor as result
+			if not paperbag_dict[start_dinasty[0]].issubset(paperbag_dict[para_dinasty[0]]):
 				output = start_point.get_common_ancestor(next_branch)
 				switch = True
 				leap = combined_dinasty[1] - start_dinasty[1]
@@ -282,7 +268,7 @@ def orthogroup(phylotree):
 		else:
 			start_point = start_point.get_common_ancestor(sis_branch)
 			rounds = rounds + 1
-	return output, start_point, start_dinasty[0], sis_dinasty[0], leap
+	return output, start_point, leap
 
 ########################################################################
 
@@ -292,25 +278,30 @@ the amount of gene losses that are needed to explain the given taxonomic
 distribution'''
 
 
-# acceptor and donor are never atually refered
 def abaccus(suspect_tree, start_point):
+	# takes the orthogroup output and analyse it by:
 	observed_mnemo_list = set()
 	event_mnemo_list = []
 	wanted = []
+	# observed mnemo has the leaves in the starting node
 	for leaf in start_point.get_leaves():
 		observed_mnemo_list.add(str(str(leaf)[str(leaf).rfind("_")+1:]))
+	# event mnemo has all the leaf in suspect tree
 	for leaf in suspect_tree.get_leaves():
 		event_mnemo_list.append(str(str(leaf)[str(leaf).rfind("_")+1:]))
-
+	# find common ancestor between nodes in starting point
 	commonancestor = dinasty(event_mnemo_list)
 	losses = 0
+	# loop from 0 to Number of commonancestor rank (last level excluded)
 	for i in range(commonancestor[1]):
 		if i > len(taxo_dict[central_sp]) - 1:
 			losses = losses + 1
 			wanted.append("There is at least one loss in the base of eukarya")
 			break
+		# elif the species in the ith level are a subset of the species in the starting node
 		elif set(paperbag_dict[taxo_dict[central_sp][i]]).issubset(observed_mnemo_list):
 			continue
+		# elif the length of the difference between ith level and the previous is 0
 		elif len(set(paperbag_dict[taxo_dict[central_sp][i]]).difference(set(paperbag_dict[taxo_dict[central_sp][i-1]]))) == 0:
 			continue
 		else:
@@ -321,15 +312,14 @@ def abaccus(suspect_tree, start_point):
 
 ########################################################################
 
-
 taxonomist(taxofile)
 paperbag(taxofile)
 orthotree = orthogroup(phylotree)
-
-cutoff, jump = abaccus(orthotree[0], orthotree[1]), str(orthotree[4])
+jump = str(orthotree[2])
+cutoff = abaccus(orthotree[0], orthotree[1])
 
 if cutoff[0] >= args.losses:
-	if args.verbose == False:
+	if not args.verbose:
 		outputfile.write("\n###" + central_seq + ' - ' + taxo_dict[central_sp][0] + "###\n")
 		outputfile.write("Minimal number of losses: " + str(cutoff[0]) + "\n")
 		outputfile.write("J == " + jump + " ; L == " + str(cutoff[0]) + ". Cutoff values are J =< " + str(args.jumps) + " and L =< " + str(args.losses) + "\n")
@@ -339,7 +329,7 @@ if cutoff[0] >= args.losses:
 		outputfile.write(orthotree[0].get_ascii(show_internal=False))
 		outputfile.write("\n\n\n")
 		outputfile.close()
-	if args.verbose == True:
+	if args.verbose:
 		print("###" + central_seq + "###")
 		print("Minimal number of losses: " + str(cutoff[0]))
 		print("J == " + jump + " and L == " + str(cutoff[0]) + ". Cutoff values are J => " + str(args.jumps) + " and L => " + str(args.losses) + "\n")
