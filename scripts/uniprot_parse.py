@@ -1,6 +1,4 @@
-from ete3 import NCBITaxa
-
-# from ete3 import Tree
+from ete3 import NCBITaxa, Tree
 import pandas as pd
 import argparse
 
@@ -18,7 +16,7 @@ if __name__ == "__main__":
         "--input",
         default=False,
         required=True,
-        help="A txt files with mnemonic codes or taxonomic ids",
+        help="The gene family tree or a txt file containing the mnemonic codes",
     )
     parser.add_argument(
         "-o",
@@ -54,10 +52,17 @@ if __name__ == "__main__":
 ncbi = NCBITaxa()
 args = parser.parse_args()
 
-with open(args.input) as inp:
-    sp = [line.strip() for line in inp.readlines()]
-    # remove duplicates
-    sp = list(set(sp))
+input = args.input
+
+if input.endswith(".txt"):
+    with open(input) as inp:
+        sp = [line.strip() for line in inp.readlines()]
+        # remove duplicates
+        sp = list(set(sp))
+elif input.endswith(("nwk","nw","newick")):
+    tree = Tree(input)
+    mnemoset = {str(leaf)[str(leaf).rfind("_")+1:] for leaf in tree.get_leaves()}
+    sp = [element for element in mnemoset]
 
 taxo_dict = {}
 
