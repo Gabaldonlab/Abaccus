@@ -2,3 +2,5 @@ scripts/*test.py
 abaccus_output.txt
 todos.txt
 test/phylo_data/
+scripts/test_viz.py
+scripts/*dev.py

@@ -26,7 +26,6 @@ This is the name of the central sequence used for building the tree. By default,
 
 For the other arguments run `python scripts/abaccus.py -h`
 
-
 **Output:**
 
 Abaccus reports a raw text summarizing the number of loses needed to explain the phylogenetic distribution assuming exclusively vertical inheritance, the taxonomic levels at which the loses are predicted, and a printed version of the subtree containing the predicted transferred group as well as the branches in which it is embedded (sister branch and the sister branch to the common ancestor of the event + sister branch).
@@ -40,7 +39,7 @@ TODO
 The current test directory contains three examples. Each directory contains the newick file, as well as the fasta file used for building the tree.
 
 In order to launch the script with the examples, just use as input any of the trees in newick format. For example:
-> python ./scripts/abaccus.py -i ./test/Example1/O59828_ALR1_SCHPO.tree.phyml.nj.LG.nw -t data/taxonomy.csv
+> python ./scripts/abaccus.py -i ./test/Example1/O59828_ALR1_SCHPO.tree.phyml.nj.LG.nw -t data/taxonomy.csv -o test/Example1/out_abaccus.txt
 
 In this example, the program will create a file called abacus_output.txt with the results if it doesn't exists already. If it does, it will just append the output to the existing file. To send the results to STDOUT, use the -v or --verbose flag.
 
