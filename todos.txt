@@ -1,0 +1,6 @@
+* add check to automatic_test
+* maybe let the user get the orthologous tree before analysing a tree with duplications and losses.
+* Add figure and explanation of phylo mode to readme
+* test abaccus_phylo on phylome
+* check if rooted
+* add option to viz gene and species tree + gene tree and sptaxonomy but in future

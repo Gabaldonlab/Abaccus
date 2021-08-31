@@ -33,12 +33,12 @@ def taxonomist(taxofile, phylo=False, sep=";", proka=None):
                 taxo_dict[node.name] = value
     else:
         for line in open(taxofile):
-            if line[0] == "#":
-                continue
-            # strip newline
             line = line.strip()
             # skip first header line
             taxa = line.split(sep)
+            if "taxaid" in taxa[0] or "Taxa" in taxa[0]:
+                continue
+            # strip newline
             # requires second column to be the mnemo
             taxo_dict[taxa[1]] = taxa[2:]
     return taxo_dict
@@ -75,11 +75,11 @@ def paperbag(taxofile, phylo=False, sep=";", proka=None):
         # add most basal key (whichever is not EUKA!)
         paperbag_dict["biosphere"] = set()
         for line in open(taxofile):
-            if line[0] == "#":
+            line = line.strip()
+            cast = line.split(sep)
+            if "taxaid" in cast[0] or "Taxa" in cast[0]:
                 continue
             else:
-                line = line.strip()
-                cast = line.split(sep)
                 # assume third col is the first useful
                 for term in cast[2:]:
                     termset.add(term)
@@ -87,11 +87,11 @@ def paperbag(taxofile, phylo=False, sep=";", proka=None):
             # for each term in taxofile add a key and init empty set
             paperbag_dict[term] = set()
         for line in open(taxofile):
-            if line[0] == "#":
+            line = line.strip()
+            elements = line.split(sep)
+            if "taxaid" in elements[0] or "Taxa" in elements[0]:
                 continue
             else:
-                line = line.strip()
-                elements = line.split(sep)
                 # for each element add the corresponding mnemos
                 for element in elements[2:]:
                     paperbag_dict[element].add(elements[1])

@@ -7,7 +7,7 @@ assuming only vertical inheritance."""
 import sys
 
 sys.path.insert(1, "scripts")
-from ete3 import Tree, TreeStyle
+from ete3 import Tree, coretype
 import re
 import os
 import argparse
@@ -91,6 +91,7 @@ if args.input[-1] == "/":
     args.input = args.input[:-1]
 
 taxofile = args.taxonomy
+def_rounds = args.rounds
 
 if args.naming not in ["pdb", "uniref"] and not "":
     sys.exit("naming scheme must be either pdb or uniref")
@@ -200,16 +201,28 @@ if phylogeny:
     taxo_dict = fn.taxonomist(species_tree, phylo=True, proka=proka)
     paperbag_dict = fn.paperbag(species_tree, phylo=True, proka=proka)
     spe2age = fn.get_sp2age(species_tree, central_sp)
-    orthotree = fn.orthogroup_tree(
-        root_phylotree,
-        taxo_dict,
-        paperbag_dict,
-        main_leaf,
-        args.rounds,
-        args.jumps,
-        species_tree,
-        spe2age,
-    )
+
+    # this is to avoid that small trees return indexerror when too many rounds are tried
+    while def_rounds > 0:
+        try:
+            orthotree = fn.orthogroup_tree(
+                root_phylotree,
+                taxo_dict,
+                paperbag_dict,
+                main_leaf,
+                def_rounds,
+                args.jumps,
+                species_tree,
+                spe2age,
+            )
+            print("Done with Rounds: " + str(def_rounds))
+            break
+        except IndexError:
+            # print("")
+            def_rounds = def_rounds - 1
+    if def_rounds == 0:
+        sys.exit("Gene tree is too small")
+
     losses = fn.abaccus_tree(orthotree[0], species_tree, main_leaf)
     if losses >= args.losses:
         if not args.verbose:
@@ -272,9 +285,23 @@ if phylogeny:
 else:
     taxo_dict = fn.taxonomist(taxofile)
     paperbag_dict = fn.paperbag(taxofile)
-    orthotree = fn.orthogroup(
-        root_phylotree, taxo_dict, paperbag_dict, main_leaf, args.rounds, args.jumps
-    )
+
+    while def_rounds > 0:
+        try:
+            orthotree = fn.orthogroup(
+                root_phylotree,
+                taxo_dict,
+                paperbag_dict,
+                main_leaf,
+                def_rounds,
+                args.jumps,
+            )
+            print("Done with Rounds: " + str(def_rounds))
+            break
+        except coretype.tree.TreeError:
+            def_rounds = def_rounds - 1
+    if def_rounds == 0:
+        sys.exit("Gene tree is too small")
     jump = str(orthotree[2])
     cutoff = fn.abaccus(
         orthotree[0], orthotree[1], taxo_dict, paperbag_dict, central_sp

@@ -1,0 +1,14 @@
+#0-TaxaID;#1-Mnemonic;#2-Species name;#3-Genus;#4-Family;#5-Order;#6-Class;#7-Phylum;#8-Kingdom;#9-Superkingdom
+3702;ARATH;Arabidopsis thaliana;Arabidopsis;Brassicaceae;Brassicales;Magnoliopsida;Streptophyta;Viridiplantae;Eukaryota
+6239;CAEEL;Caenorhabditis elegans;Caenorhabditis;Rhabditidae;Rhabditida;Chromadorea;Nematoda;Metazoa;Eukaryota
+237561;CANAL;Candida albicans;Candida;Debaryomycetaceae;Saccharomycetales;Saccharomycetes;Ascomycota;Fungi;Eukaryota
+9031;CHICK;Gallus gallus;Gallus;Phasianidae;Galliformes;Aves;Chordata;Metazoa;Eukaryota
+7955;DANRE;Danio rerio;Danio;Danionidae;Cypriniformes;Actinopteri;Chordata;Metazoa;Eukaryota
+44689;DICDI;Dictyostelium discoideum;Dictyostelium;Dictyosteliaceae;Dictyosteliales;Eumycetozoa;Evosea;Eukaryota;Eukaryota
+7227;DROME;Drosophila melanogaster;Drosophila;Drosophilidae;Diptera;Insecta;Arthropoda;Metazoa;Eukaryota
+9606;HUMAN;Homo sapiens;Homo;Hominidae;Primates;Mammalia;Chordata;Metazoa;Eukaryota
+10090;MOUSE;Mus musculus;Mus;Muridae;Rodentia;Mammalia;Chordata;Metazoa;Eukaryota
+36329;PLAF7;Plasmodium falciparum;Plasmodium;Plasmodiidae;Haemosporida;Aconoidasida;Apicomplexa;Eukaryota;Eukaryota
+10116;RAT;Rattus norvegicus;Rattus;Muridae;Rodentia;Mammalia;Chordata;Metazoa;Eukaryota
+284812;SCHPO;Schizosaccharomyces pombe;Schizosaccharomyces;Schizosaccharomycetaceae;Schizosaccharomycetales;Schizosaccharomycetes;Ascomycota;Fungi;Eukaryota
+559292;YEAST;Saccharomyces cerevisiae;Saccharomyces;Saccharomycetaceae;Saccharomycetales;Saccharomycetes;Ascomycota;Fungi;Eukaryota
