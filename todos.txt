@@ -1,6 +1,20 @@
-* add check to automatic_test
-* maybe let the user get the orthologous tree before analysing a tree with duplications and losses.
-* Add figure and explanation of phylo mode to readme
-* test abaccus_phylo on phylome
+* add image to algorithm explanation
 * check if rooted
+
+* implement ways to set naming scheme
+* find more meaningful example with phylo mode!!
+
 * add option to viz gene and species tree + gene tree and sptaxonomy but in future
+
+
+
+
+
+
+* maybe let the user get the orthologous tree before analysing a tree with duplications and losses.
+
+	* For now only option to collapse_lineage_specific_expansions.
+	* Alternatively, get speciation trees and apply to abaccus to all of them that have seed species.
+
+
+* add run many abccus as available script??

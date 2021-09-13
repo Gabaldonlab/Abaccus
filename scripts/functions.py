@@ -1,4 +1,4 @@
-from ete3 import Tree, PhyloTree, faces, TreeStyle
+from ete3 import PhyloTree, faces, TreeStyle
 import sys
 import re
 import os.path
@@ -141,6 +141,7 @@ def dinasty(spp_list, taxo_dict):
 def dinasty_tree(spp_list, sp_tree, taxo_dict, spe2age):
     # if (sp_tree.get_common_ancestor(spp_list) == sp_tree.get_tree_root()
     #     and len(spp_list) > 1):
+    spp_list = list(set(spp_list))
     if len(set(spp_list) - set(taxo_dict.keys())) > 0:
         # biosphere (not proper if all species are euka or proka) if
         commonancestor = ["biosphere", max(spe2age.values())]
@@ -182,6 +183,21 @@ def load_tree(phylotree, naming_scheme=None):
         phylotree = PhyloTree(phylotree.write(), sp_naming_function=load_species_pdb)
     elif naming_scheme == "uniref":
         phylotree = PhyloTree(phylotree.write(), sp_naming_function=load_species_uniref)
+    return phylotree
+
+
+def collapse_duplications(phylotree, central_seq):
+
+    for node in phylotree.traverse():
+        if central_seq in node and not node.is_leaf():
+            species = list(set([no.species for no in node]))
+            if len(species) == 1:
+                for el in node:
+                    if central_seq not in el:
+                        el.delete()
+    # if you only use this if main seq is in expansion node it may be removed!
+    phylotree = phylotree.collapse_lineage_specific_expansions()
+
     return phylotree
 
 
@@ -488,3 +504,73 @@ def gene_viz(phylotree, orthotree, main_leaf):
     ts.show_branch_support = True
     ts.layout_fn = layout_genes
     return ts
+
+
+def write_abac_file(
+    central_seq,
+    central_sp,
+    losses,
+    jumps,
+    orthotree,
+    losses_def,
+    jumps_def,
+    outputfile,
+    cutoff=None,
+):
+    outputfile.write("\n###" + central_seq + " - " + central_sp + "###\n")
+    outputfile.write("Minimal number of losses: " + str(losses) + "\n")
+    outputfile.write(
+        "J == "
+        + str(jumps)
+        + " ; L == "
+        + str(losses)
+        + ". Cutoff values are J =< "
+        + str(jumps_def)
+        + " and L =< "
+        + str(losses_def)
+        + "\n"
+    )
+    if cutoff is not None:
+        for element in cutoff:
+            outputfile.write(element)
+            outputfile.write("\n")
+    outputfile.write(orthotree.get_ascii(show_internal=False))
+    outputfile.write("\n\n\n")
+    outputfile.close()
+
+
+def print_no_event(losses, jump, jump_def, losses_def):
+    print("Minimal number of losses: " + str(losses))
+    print(
+        "J == "
+        + str(jump)
+        + " and L == "
+        + str(losses)
+        + ". Cutoff values are J => "
+        + str(jump_def)
+        + " and L => "
+        + str(losses_def)
+    )
+
+
+def print_verbose(
+    central_seq, losses, jumps, jumps_def, losses_def, orthotree, cutoff=None
+):
+    print("###" + central_seq + "###")
+    print("Minimal number of losses: " + str(losses))
+    print(
+        "J == "
+        + str(jumps)
+        + " and L == "
+        + str(losses)
+        + ". Cutoff values are J => "
+        + str(jumps_def)
+        + " and L => "
+        + str(losses_def)
+        + "\n"
+    )
+    if cutoff is not None:
+        for element in cutoff:
+            print(element)
+    print(orthotree)
+    print("\n")

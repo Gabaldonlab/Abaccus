@@ -70,6 +70,12 @@ if __name__ == "__main__":
         help="Prints the result onscreen instead of redirecting it to a file",
     )
     parser.add_argument(
+        "-c",
+        "--collapse_dup",
+        action="store_true",
+        help="Collapse lineage specific duplications in genetrees",
+    )
+    parser.add_argument(
         "--image",
         action="store_true",
         help="Produces the abaccus plot in working dir or in output directory if output is given (blue point is starting point, red point is end point)",
@@ -148,11 +154,6 @@ if os.path.isdir(args.input):
 else:
     phylotree = Tree(args.input)
 
-phylotree = fn.load_tree(phylotree, naming_scheme=naming_scheme)
-
-for node in phylotree.get_descendants():
-    if node.support < args.branch_support:
-        node.delete()
 
 if args.main is not None:
     central_seq = args.main
@@ -175,6 +176,17 @@ else:
     print("the central sequence found is: " + str(central_seq))
 
 
+for node in phylotree.get_descendants():
+    if node.support < args.branch_support:
+        node.delete()
+
+
+phylotree = fn.load_tree(phylotree, naming_scheme=naming_scheme)
+
+list_gene_sp = list(set([sp.species for sp in phylotree.get_leaves()]))
+if len(list_gene_sp) == 1:
+    sys.exit("Only one species in genetree")
+
 main_leaf = ""
 for leaf in phylotree.get_leaves():
     if str(leaf).find(central_seq) > -1:
@@ -183,7 +195,6 @@ for leaf in phylotree.get_leaves():
 
 central_sp = main_leaf.species
 
-
 out_img = ""
 if not args.verbose:
     outputfile = open(args.output, "a")
@@ -191,18 +202,31 @@ if not args.verbose:
     outputdir = os.path.dirname(args.output)
     out_img = outputdir + "/" + outfile_noext + "_abaccus.png"
 
-# add option how to root it, now its midpoint
-root_phylotree = fn.root_tree(phylotree, main_leaf)
 
+# fix this mess!
 if phylogeny:
     species_tree = fn.name_internal(species_tree)
-    list_gene_sp = list(set([sp.species for sp in phylotree.get_leaves()]))
-    species_tree.prune(list_gene_sp)
     taxo_dict = fn.taxonomist(species_tree, phylo=True, proka=proka)
     paperbag_dict = fn.paperbag(species_tree, phylo=True, proka=proka)
     spe2age = fn.get_sp2age(species_tree, central_sp)
-
-    # this is to avoid that small trees return indexerror when too many rounds are tried
+    root_phylotree = fn.root_tree(phylotree, main_leaf, spe2age, midpoint=False)
+    if args.collapse_dup:
+        root_phylotree = fn.collapse_duplications(root_phylotree, central_seq)
+        main_leaf = ""
+        for leaf in root_phylotree.get_leaves():
+            if str(leaf).find(central_seq) > -1:
+                main_leaf = leaf
+                break
+    # should I prune before or after computing taxdict spe2age and paperbag:
+    # before: if i use same sptree for different gene trees results are different but maybe the values adapt better to each gene
+    # after: if i do it after and apply abaccus to all trees in a phylome all runs will use same dicts
+    # cannot simply prune as it will change internal names useful for taxo_dict
+    all_sp = species_tree.get_leaf_names()
+    absent = [el for el in all_sp if el not in list_gene_sp]
+    for node in absent:
+        leaf = species_tree & node
+        leaf.delete()
+    # this while loop is to avoid that small trees return indexerror when too many rounds are tried
     while def_rounds > 0:
         try:
             orthotree = fn.orthogroup_tree(
@@ -226,63 +250,37 @@ if phylogeny:
     losses = fn.abaccus_tree(orthotree[0], species_tree, main_leaf)
     if losses >= args.losses:
         if not args.verbose:
-            outputfile.write("\n###" + central_seq + " - " + central_sp + "###\n")
-            outputfile.write("Minimal number of losses: " + str(losses) + "\n")
-            outputfile.write(
-                "J == "
-                + orthotree[2]
-                + " ; L == "
-                + str(losses)
-                + ". Cutoff values are J =< "
-                + str(args.jumps)
-                + " and L =< "
-                + str(args.losses)
-                + "\n"
+            fn.write_abac_file(
+                central_seq,
+                central_sp,
+                losses,
+                orthotree[2],
+                orthotree[0],
+                args.losses,
+                args.jumps,
+                outputfile,
             )
-            # for element in cutoff[1]:
-            #     outputfile.write(element)
-            #     outputfile.write("\n")
-            outputfile.write(orthotree[0].get_ascii(show_internal=False))
-            outputfile.write("\n\n\n")
-            outputfile.close()
         if args.verbose:
-            print("###" + central_seq + "###")
-            print("Minimal number of losses: " + str(losses))
-            print(
-                "J == "
-                + str(orthotree[2])
-                + " and L == "
-                + str(losses)
-                + ". Cutoff values are J => "
-                + str(args.jumps)
-                + " and L => "
-                + str(args.losses)
-                + "\n"
+            fn.print_verbose(
+                central_seq, losses, orthotree[2], args.jumps, args.losses, orthotree[0]
             )
-            # for element in cutoff[1]:
-            #     print(element)
-            print(orthotree[0])
-            print("\n")
         if args.image:
             if out_img == "":
                 out_img = central_seq + "_abaccus.png"
             ts = fn.gene_viz(root_phylotree, orthotree, main_leaf)
             phylotree.render(out_img, tree_style=ts)
     else:
-        print("Minimal number of losses: " + str(losses))
-        print(
-            "J == "
-            + str(orthotree[2])
-            + " and L == "
-            + str(losses)
-            + ". Cutoff values are J => "
-            + str(args.jumps)
-            + " and L => "
-            + str(args.losses)
-        )
-        print("No events detected, empty output file")
+        fn.print_no_event(losses, orthotree[2], args.jumps, args.losses)
 
 else:
+    root_phylotree = fn.root_tree(phylotree, main_leaf)
+    if args.collapse_dup:
+        root_phylotree = fn.collapse_duplications(root_phylotree, central_seq)
+        main_leaf = ""
+        for leaf in root_phylotree.get_leaves():
+            if str(leaf).find(central_seq) > -1:
+                main_leaf = leaf
+                break
     taxo_dict = fn.taxonomist(taxofile)
     paperbag_dict = fn.paperbag(taxofile)
 
@@ -309,60 +307,31 @@ else:
 
     if cutoff[0] >= args.losses:
         if not args.verbose:
-            outputfile.write(
-                "\n###" + central_seq + " - " + taxo_dict[central_sp][0] + "###\n"
+            fn.write_abac_file(
+                central_seq,
+                central_sp,
+                cutoff[0],
+                jump,
+                orthotree[0],
+                args.losses,
+                args.jumps,
+                outputfile,
+                cutoff=cutoff[1],
             )
-            outputfile.write("Minimal number of losses: " + str(cutoff[0]) + "\n")
-            outputfile.write(
-                "J == "
-                + jump
-                + " ; L == "
-                + str(cutoff[0])
-                + ". Cutoff values are J =< "
-                + str(args.jumps)
-                + " and L =< "
-                + str(args.losses)
-                + "\n"
-            )
-            for element in cutoff[1]:
-                outputfile.write(element)
-                outputfile.write("\n")
-            outputfile.write(orthotree[0].get_ascii(show_internal=False))
-            outputfile.write("\n\n\n")
-            outputfile.close()
         if args.verbose:
-            print("###" + central_seq + "###")
-            print("Minimal number of losses: " + str(cutoff[0]))
-            print(
-                "J == "
-                + jump
-                + " and L == "
-                + str(cutoff[0])
-                + ". Cutoff values are J => "
-                + str(args.jumps)
-                + " and L => "
-                + str(args.losses)
-                + "\n"
+            fn.print_verbose(
+                central_seq,
+                cutoff[0],
+                jump,
+                args.jumps,
+                args.losses,
+                orthotree[0],
+                cutoff=cutoff[1],
             )
-            for element in cutoff[1]:
-                print(element)
-            print(orthotree[0])
-            print("\n")
         if args.image:
             if out_img == "":
                 out_img = central_seq + "_abaccus.png"
             ts = fn.gene_viz(root_phylotree, orthotree, main_leaf)
             phylotree.render(out_img, tree_style=ts)
     else:
-        print("Minimal number of losses: " + str(cutoff[0]))
-        print(
-            "J == "
-            + jump
-            + " and L == "
-            + str(cutoff[0])
-            + ". Cutoff values are J => "
-            + str(args.jumps)
-            + " and L => "
-            + str(args.losses)
-        )
-        print("No events detected, empty output file")
+        fn.print_no_event(cutoff[0], jump, args.jumps, args.losses)
