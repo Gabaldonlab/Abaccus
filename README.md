@@ -110,8 +110,7 @@ The file *data/taxonomy.csv* is a manually curated taxonomy but the script *scri
 It depends on the file *data/speclist_24_08_21.txt* (if you want to update it simply run `curl https://www.uniprot.org/docs/speclist.txt -o data/speclist_$(date +'%d_%m_%y').txt`)
 
 To use this script run
-> python scripts/uniprot_parse.py -i $input_file -u da
-ta/speclist_24_08_21.txt
+> python scripts/uniprot_parse.py -i $input_file -u data/speclist_24_08_21.txt
 
 By default this will create the file "taxonomy_mnemo.csv" in the present directory. The first time may take a while as ete3 needs to download the db.
 

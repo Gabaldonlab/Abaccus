@@ -11,6 +11,8 @@ def name_internal(taxofile):
         if node.name == "":
             node.name = "internal_" + str(num)
             num += 1
+    root = taxofile.get_tree_root()
+    root.name = "biosphere"
     return taxofile
 
 
@@ -23,7 +25,7 @@ def taxonomist(taxofile, phylo=False, sep=";", proka=None):
 
     if phylo:
         for node in taxofile.iter_leaves():
-            value = [nod.name for nod in node.get_ancestors()][:-1]
+            value = [nod.name for nod in node.get_ancestors()]
             # the user decides if excluding proka entries
             if proka is not None:
                 # only non proka entries will be keys

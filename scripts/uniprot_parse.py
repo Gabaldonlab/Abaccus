@@ -59,17 +59,20 @@ if input.endswith(".txt"):
         sp = [line.strip() for line in inp.readlines()]
         # remove duplicates
         sp = list(set(sp))
-elif input.endswith(("nwk","nw","newick")):
+elif input.endswith(("nwk", "nw", "newick")):
     tree = Tree(input)
-    mnemoset = {str(leaf)[str(leaf).rfind("_")+1:] for leaf in tree.get_leaves()}
+    mnemoset = {str(leaf)[str(leaf).rfind("_") + 1 :] for leaf in tree.get_leaf_names()}
     sp = [element for element in mnemoset]
 
 taxo_dict = {}
 
+sp_str = [el for el in sp if not el.isdecimal()]
+sp_num = [el for el in sp if el.isdecimal()]
+
 with open(args.uniprot_df) as f:
-    targets = [line for line in f for s in sp if s in line]
-    sp_line = [line.split() for line in targets]
-    for line in sp_line:
+    targets = [line for line in f for s in sp_str if s in line]
+    for line in targets:
+        line = line.split()
         if len(line) > 2:
             mnemo = line[0]
             taxid = line[2].replace(":", "")
@@ -78,6 +81,15 @@ with open(args.uniprot_df) as f:
             elif taxid in sp:
                 taxo_dict[taxid] = mnemo
 
+for el in sp_num:
+    if len(ncbi.get_taxid_translator([el])) > 0:
+        taxo_dict[el] = el
+
+absent = set([abs for abs in sp if abs not in taxo_dict.values()])
+
+if absent:
+    print("Warning: " + " ".join(absent) + " was not found in the dictionary.")
+    print("You may want to add it manually")
 abs = [el for el in sp if el not in list(taxo_dict.values()) and not el.isdecimal()]
 abs_tx = [el for el in sp if el not in list(taxo_dict.keys()) and el.isdecimal()]
 

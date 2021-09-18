@@ -1,6 +1,8 @@
 * add image to algorithm explanation
 * check if rooted
 
+* add add_to_taxonomy script
+* add option to start from mnmo taxdict
 * implement ways to set naming scheme
 * find more meaningful example with phylo mode!!
 

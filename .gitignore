@@ -5,3 +5,4 @@ scripts/test_viz.py
 scripts/*dev.py
 test_phylome
 scripts/run_many_abacs.sh
+scripts/add_to_taxonomy.py
