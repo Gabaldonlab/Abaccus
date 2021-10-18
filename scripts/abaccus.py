@@ -82,6 +82,16 @@ if __name__ == "__main__":
     )
     parser.add_argument("-b", "--branch_support", default=0.9, type=float)
     parser.add_argument(
+        "--mid",
+        action="store_true",
+        help="Midpoint root even if you provided a species tree.",
+    )
+    parser.add_argument(
+        "--print_anyway",
+        action="store_true",
+        help="Print events even if they don't reach the loss parameter.",
+    )
+    parser.add_argument(
         "-p",
         "--prokaryotes",
         help="Name of the file containing the mnemonic codes of prokaryotic entitites. Use only if using abaccus with a phylogeny.",
@@ -109,7 +119,7 @@ if taxofile.endswith("csv"):
     phylogeny = False
 elif taxofile.endswith(("nwk", "nw", "newick")):
     phylogeny = True
-    species_tree = Tree(taxofile)
+    species_tree = Tree(taxofile, format=1)
     if args.prokaryotes:
         with open(args.prokaryotes) as p:
             proka = [line.strip() for line in p.readlines()]
@@ -192,6 +202,8 @@ for leaf in phylotree.get_leaves():
     if str(leaf).find(central_seq) > -1:
         main_leaf = leaf
         break
+if main_leaf == "":
+    sys.exit("Could not find main sequence in tree.")
 
 central_sp = main_leaf.species
 
@@ -209,7 +221,10 @@ if phylogeny:
     taxo_dict = fn.taxonomist(species_tree, phylo=True, proka=proka)
     paperbag_dict = fn.paperbag(species_tree, phylo=True, proka=proka)
     spe2age = fn.get_sp2age(species_tree, central_sp)
-    root_phylotree = fn.root_tree(phylotree, main_leaf, spe2age, midpoint=False)
+    if args.mid:
+        root_phylotree = fn.root_tree(phylotree, main_leaf)
+    else:
+        root_phylotree = fn.root_tree(phylotree, main_leaf, spe2age, midpoint=False)
     if args.collapse_dup:
         root_phylotree = fn.collapse_duplications(root_phylotree, central_seq)
         main_leaf = ""
@@ -223,9 +238,9 @@ if phylogeny:
     # cannot simply prune as it will change internal names useful for taxo_dict
     all_sp = species_tree.get_leaf_names()
     absent = [el for el in all_sp if el not in list_gene_sp]
-    for node in absent:
-        leaf = species_tree & node
-        leaf.delete()
+    # for node in absent:
+    #     leaf = species_tree & node
+    #     leaf.delete()
     # this while loop is to avoid that small trees return indexerror when too many rounds are tried
     while def_rounds > 0:
         try:
@@ -241,14 +256,13 @@ if phylogeny:
             )
             print("Done with Rounds: " + str(def_rounds))
             break
-        except IndexError:
+        except (coretype.tree.TreeError, IndexError):
             # print("")
             def_rounds = def_rounds - 1
     if def_rounds == 0:
         sys.exit("Gene tree is too small")
-
-    losses = fn.abaccus_tree(orthotree[0], species_tree, main_leaf)
-    if losses >= args.losses:
+    losses = fn.abaccus_tree(orthotree[0], species_tree, main_leaf, taxo_dict)
+    if losses >= args.losses or (losses > 0 and args.print_anyway):
         if not args.verbose:
             fn.write_abac_file(
                 central_seq,
@@ -305,7 +319,7 @@ else:
         orthotree[0], orthotree[1], taxo_dict, paperbag_dict, central_sp
     )
 
-    if cutoff[0] >= args.losses:
+    if cutoff[0] >= args.losses or (cutoff[0] > 0 and args.print_anyway):
         if not args.verbose:
             fn.write_abac_file(
                 central_seq,

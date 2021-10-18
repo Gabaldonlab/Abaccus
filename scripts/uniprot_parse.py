@@ -57,6 +57,8 @@ input = args.input
 
 taxo_dict = {}
 
+already_done = False
+
 if input.endswith(".txt"):
     with open(input) as inp:
         sp = [line.strip() for line in inp.readlines()]

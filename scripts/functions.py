@@ -8,7 +8,7 @@ def name_internal(taxofile):
     num = 1
     # name intenal nodes with arbitrary nodes
     for node in taxofile.iter_descendants():
-        if node.name == "":
+        if node.name == "" or node.name == "NoName":
             node.name = "internal_" + str(num)
             num += 1
     root = taxofile.get_tree_root()
@@ -24,7 +24,7 @@ def taxonomist(taxofile, phylo=False, sep=";", proka=None):
     taxo_dict = {}
 
     if phylo:
-        for node in taxofile.iter_leaves():
+        for node in taxofile.traverse():
             value = [nod.name for nod in node.get_ancestors()]
             # the user decides if excluding proka entries
             if proka is not None:
@@ -151,7 +151,8 @@ def dinasty_tree(spp_list, sp_tree, taxo_dict, spe2age):
         if len(spp_list) > 1:
             anc = sp_tree.get_common_ancestor(spp_list)
         else:
-            anc = sp_tree.get_leaves_by_name(spp_list[0])[0]
+            anc = [node for node in sp_tree.traverse() if node.name == spp_list[0]][0]
+            # anc = sp_tree.get_leaves_by_name(spp_list[0])[0]
         ages = [spe2age[k] for k in anc.get_leaf_names()]
         val = max(ages)  # - min(ages)
         commonancestor = [anc.name, val]
@@ -427,7 +428,7 @@ def abaccus(suspect_tree, start_point, taxo_dict, paperbag_dict, central_sp):
     return losses, wanted
 
 
-def abaccus_tree(suspect_tree, sptree, main_leaf):
+def abaccus_tree(suspect_tree, sptree, main_leaf, taxo_dict):
     # take nodes from main to suspect tree that contain main sequence
     # in order.
     list_nodes_main = []
@@ -440,11 +441,14 @@ def abaccus_tree(suspect_tree, sptree, main_leaf):
     for node in list_nodes_main:
         leaves_node = node.get_leaves()
         sp_node = set([el.species for el in leaves_node])
+        sp_node_euka = set(
+            [el.species for el in leaves_node if el.species in taxo_dict.keys()]
+        )
         # check if not a clade specific node
         if len(sp_node) > 1:
             # get the species in the reference tree that comprise all the
             # species in suspect node
-            sp_tree = set(sptree.get_common_ancestor(sp_node).get_leaf_names())
+            sp_tree = set(sptree.get_common_ancestor(sp_node_euka).get_leaf_names())
             # if there is a difference, add to losses:
             if len(sp_tree.difference(sp_node)) > 0:
                 losses += 1
@@ -458,7 +462,7 @@ def get_sp2age(sptree, central_sp):
     main_leaf = sptree & central_sp
     # compute sp2age from species tree
     sp2age = {}
-    for leaf in sptree.iter_leaves():
+    for leaf in sptree.traverse():
         mrca = main_leaf.get_common_ancestor(leaf)
         d = main_leaf.get_distance(mrca, topology_only=True) + 1
         sp2age[leaf.name] = int(d)
